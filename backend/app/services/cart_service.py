@@ -25,8 +25,14 @@ def _get_or_create_cart(db: Session, user_id: int) -> Cart:
 def _serialize_cart(cart: Cart) -> dict:
     items = []
     total_price = 0.0
+    changed = False
 
-    for item in cart.items:
+    for item in list(cart.items):
+        # Old carts may contain dangling items if a product was deleted.
+        if not item.product:
+            changed = True
+            continue
+
         unit_price = item.product.price
         discounted_unit_price = _discounted_price(item.product)
         line_total = round(discounted_unit_price * item.quantity, 2)
@@ -43,6 +49,9 @@ def _serialize_cart(cart: Cart) -> dict:
                 "line_total": line_total,
             }
         )
+
+    if changed:
+        cart.items = [ci for ci in cart.items if ci.product is not None]
 
     return {
         "cart_id": cart.id,
@@ -110,8 +119,9 @@ def delete_item(db: Session, user_id: int, item_id: int):
     return _serialize_cart(cart)
 
 
-def clear_cart(db: Session, user_id: int):
+def clear_cart(db: Session, user_id: int, commit: bool = True):
     cart = _get_or_create_cart(db, user_id)
     for item in cart.items:
         db.delete(item)
-    db.commit()
+    if commit:
+        db.commit()

@@ -5,13 +5,18 @@ from typing import List
 from app.schemas.category import CategoryCreate, CategoryResponse
 from app.services import category as category_service
 from app.utils.database import get_db
+from app.utils.security import require_admin
 
 
 router = APIRouter(prefix="/categories", tags=["Categories"])
 
 
 @router.post("/", response_model=CategoryResponse)
-def create_category(category: CategoryCreate, db: Session = Depends(get_db)):
+def create_category(
+    category: CategoryCreate,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
     return category_service.create_category(db, category.name)
 
 
@@ -21,10 +26,19 @@ def read_categories(db: Session = Depends(get_db)):
 
 
 @router.put("/{category_id}", response_model=CategoryResponse)
-def update_category(category_id: int, category: CategoryCreate, db: Session = Depends(get_db)):
+def update_category(
+    category_id: int,
+    category: CategoryCreate,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
     return category_service.update_category(db, category_id, category.name)
 
 
 @router.delete("/{category_id}")
-def delete_category(category_id: int, db: Session = Depends(get_db)):
+def delete_category(
+    category_id: int,
+    db: Session = Depends(get_db),
+    _admin=Depends(require_admin),
+):
     return category_service.delete_category(db, category_id)

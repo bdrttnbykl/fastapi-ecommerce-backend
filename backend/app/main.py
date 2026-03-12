@@ -1,22 +1,12 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.models.cart import Cart
-from app.models.cart_item import CartItem
-from app.models.category import Category
-from app.models.discount import Discount
-from app.models.order import Order
-from app.models.order_item import OrderItem
-from app.models.product import Product
-from app.models.user import User
 from app.routers import admin, auth, cart, categories, orders, products, users
-from app.utils.database import Base, engine
-
-
-Base.metadata.create_all(bind=engine)
 os.makedirs("app/uploads", exist_ok=True)
 
 app = FastAPI(title="E-Commerce Backend")
@@ -41,6 +31,30 @@ app.include_router(cart.router)
 app.include_router(orders.router)
 app.include_router(admin.router)
 app.mount("/uploads", StaticFiles(directory="app/uploads"), name="uploads")
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"type": "http_error", "message": exc.detail}},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"error": {"type": "validation_error", "message": "Validation failed", "details": exc.errors()}},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"error": {"type": "server_error", "message": "Internal server error"}},
+    )
 
 
 @app.get("/")

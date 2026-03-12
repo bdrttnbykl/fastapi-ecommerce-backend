@@ -19,3 +19,13 @@ def create_order(payload: OrderCreate, current_user: User = Depends(get_current_
 @router.get("/", response_model=list[OrderResponse])
 def list_orders(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return order_service.list_orders(db, current_user.id)
+
+
+@router.get("/my-orders", response_model=list[OrderResponse])
+def list_my_orders(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return order_service.list_orders(db, current_user.id)
+
+
+@router.get("/{order_id}", response_model=OrderResponse)
+def get_order(order_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return order_service.get_order_for_user(db, current_user.id, order_id)

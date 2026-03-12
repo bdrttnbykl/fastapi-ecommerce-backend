@@ -24,5 +24,13 @@ if (-not $depsOk) {
     & $venvPython -m pip install -r requirements.txt
 }
 
+Write-Host "Applying migrations..."
+try {
+    & $venvPython -m alembic upgrade head
+}
+catch {
+    Write-Warning "Migration failed. If this is an old existing database, run: alembic stamp head"
+}
+
 Write-Host "Starting API..."
 & $venvPython -m uvicorn app.main:app --reload
